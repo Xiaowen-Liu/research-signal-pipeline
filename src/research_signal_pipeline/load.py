@@ -78,9 +78,12 @@ def load_run(run_dir: Path, database_path: Path) -> int:
         try:
             for row in rows:
                 existing = connection.execute(
-                    "SELECT updated_at, ingested_at FROM issues WHERE issue_id = ?", [row[0]]
+                    "SELECT updated_at, ingested_at, repository, source_url, created_at "
+                    "FROM issues WHERE issue_id = ?", [row[0]]
                 ).fetchone()
-                if existing and existing > (row[6], row[10]):
+                if existing and existing[2:] != (row[1], row[7], row[5]):
+                    raise ValueError("Issue identity conflicts with stored provenance")
+                if existing and existing[:2] > (row[6], row[10]):
                     continue
                 connection.execute("DELETE FROM issue_labels WHERE issue_id = ?", [row[0]])
                 connection.execute(
