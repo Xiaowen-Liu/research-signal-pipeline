@@ -61,3 +61,44 @@ def test_duplicate_manifest_entries_are_deduplicated(tmp_path):
     manifest["record_count"] = 2
     path.write_text(json.dumps(manifest))
     assert load_run(run, tmp_path / "signals.duckdb") == 1
+
+
+def test_older_snapshot_does_not_restore_old_labels(tmp_path):
+    old_run = make_run(tmp_path)
+    new_run = make_run(tmp_path)
+    path = new_run / "issues/1.json"
+    record = json.loads(path.read_text())
+    record.update(state="closed", updated_at="2026-03-01T00:00:00Z",
+                  labels=[{"name": "resolved"}])
+    path.write_text(json.dumps(record))
+    database = tmp_path / "signals.duckdb"
+    load_run(new_run, database)
+    load_run(old_run, database)
+    with duckdb.connect(str(database)) as connection:
+        assert connection.execute("SELECT state FROM issues").fetchall() == [("closed",)]
+        assert connection.execute("SELECT label FROM issue_labels").fetchall() == [("resolved",)]
+
+
+def test_identity_conflict_rolls_back_entire_batch(tmp_path):
+    run = make_run(tmp_path)
+    database = tmp_path / "signals.duckdb"
+    load_run(run, database)
+    manifest_path = run / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    record_path = run / "issues/1.json"
+    record = json.loads(record_path.read_text())
+    new_record = dict(record, id=2, number=2,
+                      html_url="https://github.com/example/product/issues/2")
+    (run / "issues/2.json").write_text(json.dumps(new_record))
+    manifest["records"].insert(0, {
+        "issue_id": 2, "issue_number": 2, "source_url": new_record["html_url"],
+        "raw_json_path": str(run / "issues/2.json"),
+    })
+    manifest["record_count"] = 2
+    manifest_path.write_text(json.dumps(manifest))
+    record["created_at"] = "2026-01-02T00:00:00Z"
+    record_path.write_text(json.dumps(record))
+    with pytest.raises(ValueError, match="identity conflicts"):
+        load_run(run, database)
+    with duckdb.connect(str(database)) as connection:
+        assert connection.execute("SELECT issue_id FROM issues").fetchall() == [(1,)]
