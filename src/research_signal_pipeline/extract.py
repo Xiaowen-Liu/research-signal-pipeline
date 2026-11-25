@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import argparse
+import json
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-import argparse
-import json
 
 import httpx
 
@@ -50,7 +50,7 @@ def fetch_issues(repository: str, limit: int, client: httpx.Client) -> list[dict
 
 def save_raw_records(records: Iterable[dict[str, Any]], repository: str, output_dir: Path) -> Path:
     """Write each API record and a manifest beneath a timestamped run directory."""
-    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     run_dir = output_dir / repository.replace("/", "__") / run_id
     issues_dir = run_dir / "issues"
     issues_dir.mkdir(parents=True, exist_ok=False)
@@ -105,3 +105,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
