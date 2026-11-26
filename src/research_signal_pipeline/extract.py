@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -21,9 +22,18 @@ def issue_records(payload: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     return [record for record in payload if "pull_request" not in record]
 
 
-def fetch_issues(repository: str, limit: int, client: httpx.Client) -> list[dict[str, Any]]:
+def fetch_issues(
+    repository: str, limit: int, client: httpx.Client, *, max_pages: int = 100
+) -> list[dict[str, Any]]:
     """Fetch at most the requested number of public GitHub issues."""
     records: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9_.-]+", repository) or (
+        repository.rsplit("/", 1)[-1] in {".", ".."}
+    ):
+        raise ValueError("Repository must have owner/name form")
+    if limit < 1 or max_pages < 1:
+        raise ValueError("Limit and max_pages must be positive")
     page = 1
 
     while len(records) < limit:
@@ -39,10 +49,22 @@ def fetch_issues(repository: str, limit: int, client: httpx.Client) -> list[dict
         )
         response.raise_for_status()
         payload = response.json()
-        records.extend(issue_records(payload))
+        if not isinstance(payload, list) or any(
+            not isinstance(record, dict) or not isinstance(record.get("id"), int)
+            for record in payload
+        ):
+            raise ValueError("GitHub returned an invalid issue list")
+        for record in issue_records(payload):
+            if record["id"] not in seen:
+                seen.add(record["id"])
+                records.append(record)
 
         if not payload or len(records) >= limit:
             break
+        if "next" not in response.links:
+            break
+        if page >= max_pages:
+            raise ValueError("Pagination budget exceeded; no complete extraction returned")
         page += 1
 
     return records[:limit]
