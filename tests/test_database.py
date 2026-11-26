@@ -19,3 +19,4 @@ def test_initialize_database_creates_version_one_tables(tmp_path: Path) -> None:
         }
 
     assert {"issues", "issue_labels"}.issubset(tables)
+

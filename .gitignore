@@ -7,3 +7,7 @@ data/raw/
 data/processed/
 *.duckdb
 .env
+
+.venv311/
+build/
+dist/

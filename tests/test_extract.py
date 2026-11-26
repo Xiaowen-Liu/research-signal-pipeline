@@ -26,3 +26,4 @@ def test_save_raw_records_writes_records_and_manifest(tmp_path: Path) -> None:
     manifest = (run_dir / "manifest.json").read_text(encoding="utf-8")
     assert '"record_count": 1' in manifest
     assert "https://example.test/issues/11" in manifest
+
