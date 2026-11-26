@@ -32,6 +32,23 @@ The database is a latest-known snapshot, not an event history. A sampled run doe
 delete issues absent from that run. API errors stop extraction; retry the command after
 resolving network or GitHub rate-limit errors. No credentials are required.
 
+## Reproducible research signal report
+
+```bash
+python -m research_signal_pipeline.report --repository open-webui/open-webui
+```
+
+This exports `data/processed/report.json` with repository-scoped coverage, missing-label
+counts, label frequencies and denominators, the ten oldest open evidence links, and
+creation-month counts. Use `--database` and `--output` to choose other paths. Empty or
+unknown repositories fail rather than implying there are no user problems.
+
+The report describes all stored issues for that repository, which may accumulate across
+runs. Its age calculations use the latest ingestion timestamp, making identical database
+contents produce identical reports. The original question is only partially answerable:
+labels describe taxonomy; oldest-open issues offer leads for manual review; growth and
+persistent user impact require better coverage and longitudinal evidence.
+
 ## Three analysis queries
 
 Run the three statements in [`sql/analysis.sql`](sql/analysis.sql) against
