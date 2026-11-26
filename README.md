@@ -32,6 +32,12 @@ The database is a latest-known snapshot, not an event history. A sampled run doe
 delete issues absent from that run. API errors stop extraction; retry the command after
 resolving network or GitHub rate-limit errors. No credentials are required.
 
+Extraction follows GitHub pagination until the unique-issue limit or last page, filtering
+PRs and deduplicating IDs across pages. Each call has a 100-page safety budget and rejects
+malformed responses. HTTP errors and budget exhaustion fail the extraction rather than
+returning a partial dataset as a completed run. This does not guarantee a consistent
+point-in-time snapshot when issues change during pagination.
+
 ## Reproducible research signal report
 
 ```bash
