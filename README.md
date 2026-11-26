@@ -129,9 +129,13 @@ The first dataset will use public GitHub issues from a single product repository
 src/research_signal_pipeline/  Pipeline code
 data/raw/                      GitHub API records (not committed)
 data/processed/                Cleaned local data (not committed)
-sql/                           DuckDB schema and analysis queries
+sql/                           Analysis queries
 tests/                         Data-quality checks
 ```
+
+The database schema is bundled at `src/research_signal_pipeline/schema.sql` so a regular
+wheel installation works outside the source checkout. GitHub Actions runs tests and lint
+on Python 3.11 and 3.12, then builds and smoke-tests the installed wheel from another directory.
 
 ## Data limitations
 

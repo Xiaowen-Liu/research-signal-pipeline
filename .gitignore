@@ -9,3 +9,5 @@ data/processed/
 .env
 
 .venv311/
+build/
+dist/
